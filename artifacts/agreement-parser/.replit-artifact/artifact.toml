@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Agreement Extraction Viewer"
+version = "1.0.0"
+id = "artifacts/agreement-parser"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22172
+
+[services.development]
+run = "pnpm --filter @workspace/agreement-parser run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/agreement-parser", "run", "build" ]
+publicDir = "artifacts/agreement-parser/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22172"
+BASE_PATH = "/"
