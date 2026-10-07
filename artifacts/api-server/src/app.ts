@@ -1,34 +1,31 @@
-import express, { type Express } from "express";
-import cors from "cors";
+import express, { type Request, type Response, type NextFunction } from "express";
 import pinoHttp from "pino-http";
-import router from "./routes";
-import { logger } from "./lib/logger";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import docusignRouter from "./routes/docusign.js";
 
-const app: Express = express();
+const app = express();
 
-app.use(
-  pinoHttp({
-    logger,
-    serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
-      },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
-    },
-  }),
-);
-app.use(cors());
+// Handle ES module default/named import interop for pino-http safely
+const logger = typeof pinoHttp === "function" ? pinoHttp() : (pinoHttp as any).default();
+app.use(logger);
+
+app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", router);
+// Routes
+app.use(docusignRouter);
+
+// Basic health check
+app.get("/health", (_req: Request, res: Response) => {
+  res.json({ status: "ok" });
+});
+
+// Explicit types for error-handling middleware
+app.use((err: Error, req: Request, res: Response, _next: NextFunction) => {
+  req.log.error({ err }, "Unhandled error");
+  res.status(500).json({ error: err.message || "Internal Server Error" });
+});
 
 export default app;
